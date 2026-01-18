@@ -43,7 +43,7 @@ jobs:
     - name: Run tests
       env:
         OPENAI_API_KEY: test-key-sk-proj-test123456789012345678901234567890
-        DATABASE_URL: sqlite:///:memory:
+        DATABASE_URL: "sqlite:///:memory:"
         DEVICE_FINGERPRINT_SALT: test-salt-for-ci
         ENVIRONMENT: test
       run: |
