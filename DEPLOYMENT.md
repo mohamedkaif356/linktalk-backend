@@ -111,6 +111,7 @@ Check:
    - **Region**: Choose closest (e.g., `Oregon (US West)`)
    - **Branch**: `main`
    - **Root Directory**: (leave empty)
+   - **Python Version**: **IMPORTANT** - Set to `3.11.9` (or `3.11`) in the dropdown. This overrides the default Python 3.13 which causes build failures.
 
 ### 3.3 Build & Start Commands
 
@@ -124,7 +125,10 @@ pip install -r requirements.txt
 gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
 ```
 
-**Important**: The project includes a `runtime.txt` file that pins Python to 3.11.9 to avoid compatibility issues with Python 3.13 (which doesn't have pre-built wheels for some dependencies like pydantic-core).
+**Important**: 
+- The project includes a `runtime.txt` file that pins Python to 3.11.9
+- **You must also explicitly set Python version to 3.11.9 in Render's service settings** (see step 3.2 above)
+- Python 3.13 causes build failures because `pydantic-core` (Rust-based) doesn't have pre-built wheels for Python 3.13 yet
 
 ### 3.4 Set Environment Variables
 
