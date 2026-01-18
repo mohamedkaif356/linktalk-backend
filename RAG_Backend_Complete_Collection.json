@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "RAG Backend API - Complete Collection",
+    "description": "Complete API collection for RAG Backend with main workflow and edge cases",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "rag-backend-complete"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "device_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ingestion_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "query_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Main Workflow",
+      "item": [
+        {
+          "name": "1. Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the server is running and healthy"
+          }
+        },
+        {
+          "name": "2. Register Device",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('device_token', jsonData.device_token);",
+                  "    console.log('✅ Device token saved:', jsonData.device_token);",
+                  "    console.log('Quota remaining:', jsonData.quota_remaining);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"app_instance_id\": \"test-{{$timestamp}}\",\n    \"device_model\": \"Test Device\",\n    \"os_version\": \"14\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/register-device",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "register-device"]
+            },
+            "description": "Register a device and get authentication token. Token is automatically saved."
+          }
+        },
+        {
+          "name": "3. Scrape URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('ingestion_id', jsonData.ingestion_id);",
+                  "    console.log('✅ Ingestion ID saved:', jsonData.ingestion_id);",
+                  "    console.log('Status:', jsonData.status);",
+                  "} else {",
+                  "    console.log('❌ Error:', pm.response.code, pm.response.text());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"https://en.wikipedia.org/wiki/Barack_Obama\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scrape-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scrape-url"]
+            },
+            "description": "Scrape a URL. Ingestion ID is automatically saved. Change the URL in the body if needed."
+          }
+        },
+        {
+          "name": "4. Poll Ingestion Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ingestions/{{ingestion_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ingestions", "{{ingestion_id}}"]
+            },
+            "description": "Poll ingestion status until status is SUCCESS or FAILED. Wait 2-5 seconds between requests."
+          }
+        },
+        {
+          "name": "5. Submit Query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 202) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('query_id', jsonData.query_id);",
+                  "    console.log('✅ Query ID saved:', jsonData.query_id);",
+                  "    console.log('Status:', jsonData.status);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"When was Obama born?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Submit a query about the ingested content. Query ID is automatically saved."
+          }
+        },
+        {
+          "name": "6. Poll Query Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/queries/{{query_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "queries", "{{query_id}}"]
+            },
+            "description": "Poll query status until status is SUCCESS or FAILED. Wait 2-5 seconds between requests. Check the answer and sources in the response."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Edge Cases & Error Testing",
+      "item": [
+        {
+          "name": "Device Registration - Missing Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"device_model\": \"Pixel 6\",\n    \"os_version\": \"14\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/register-device",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "register-device"]
+            },
+            "description": "Test error: Missing app_instance_id field"
+          }
+        },
+        {
+          "name": "Scrape URL - Second URL (Already Ingested)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"https://example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scrape-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scrape-url"]
+            },
+            "description": "Test error: Device already has one URL ingested (URL_ALREADY_INGESTED)"
+          }
+        },
+        {
+          "name": "Scrape URL - Invalid (Internal IP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"http://127.0.0.1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scrape-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scrape-url"]
+            },
+            "description": "Test error: Internal IP should be rejected"
+          }
+        },
+        {
+          "name": "Scrape URL - Invalid (Wrong Scheme)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"ftp://example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scrape-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scrape-url"]
+            },
+            "description": "Test error: Invalid URL scheme (only http/https allowed)"
+          }
+        },
+        {
+          "name": "Scrape URL - Without Auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"https://example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scrape-url",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scrape-url"]
+            },
+            "description": "Test error: Missing X-Device-Token header (401 UNAUTHORIZED)"
+          }
+        },
+        {
+          "name": "Get Ingestion Status - Wrong Device",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "wrong-token-here"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ingestions/{{ingestion_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ingestions", "{{ingestion_id}}"]
+            },
+            "description": "Test error: Wrong device token (403 FORBIDDEN)"
+          }
+        },
+        {
+          "name": "Get Ingestion Status - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ingestions/non-existent-id-12345",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ingestions", "non-existent-id-12345"]
+            },
+            "description": "Test error: Non-existent ingestion ID (404 NOT_FOUND)"
+          }
+        },
+        {
+          "name": "Submit Query - Question Too Short",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"short\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Test error: Question too short (min 10 characters)"
+          }
+        },
+        {
+          "name": "Submit Query - Question Too Long",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"This is a very long question that exceeds the maximum allowed length of 500 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Test error: Question too long (max 500 characters)"
+          }
+        },
+        {
+          "name": "Submit Query - Quota Exhausted",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"What is this about?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Test error: After 3 queries, quota is exhausted (403 QUOTA_EXHAUSTED). Run this after making 3 successful queries."
+          }
+        },
+        {
+          "name": "Submit Query - Without Auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"What is machine learning?\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Test error: Missing X-Device-Token header (401 UNAUTHORIZED)"
+          }
+        },
+        {
+          "name": "Get Query Status - Wrong Device",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "wrong-token-here"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/queries/{{query_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "queries", "{{query_id}}"]
+            },
+            "description": "Test error: Wrong device token (403 FORBIDDEN)"
+          }
+        },
+        {
+          "name": "Get Query Status - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/queries/non-existent-id-12345",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "queries", "non-existent-id-12345"]
+            },
+            "description": "Test error: Non-existent query ID (404 NOT_FOUND)"
+          }
+        },
+        {
+          "name": "Submit Query - With Custom Options",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Token",
+                "value": "{{device_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"question\": \"Explain this in detail\",\n    \"max_chunks\": 8,\n    \"temperature\": 0.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Submit query with custom max_chunks (1-10) and temperature (0.0-2.0)"
+          }
+        }
+      ]
+    }
+  ]
+}
