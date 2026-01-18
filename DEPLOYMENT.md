@@ -124,6 +124,8 @@ pip install -r requirements.txt
 gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
 ```
 
+**Important**: The project includes a `runtime.txt` file that pins Python to 3.11.9 to avoid compatibility issues with Python 3.13 (which doesn't have pre-built wheels for some dependencies like pydantic-core).
+
 ### 3.4 Set Environment Variables
 
 Click **"Environment"** tab, add:
