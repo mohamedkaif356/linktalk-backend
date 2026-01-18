@@ -117,8 +117,14 @@ Check:
 
 **Build Command:**
 ```bash
-pip install -r requirements.txt
+python3.11 -m pip install --upgrade pip && python3.11 -m pip install -r requirements.txt
 ```
+
+**Alternative (if Python 3.11 is not available in PATH):**
+```bash
+pip install --upgrade pip && pip install -r requirements.txt
+```
+**Note**: Make sure Python version is set to 3.11.9 in Render's service settings (see step 3.2).
 
 **Start Command:**
 ```bash
