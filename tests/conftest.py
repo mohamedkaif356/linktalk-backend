@@ -20,8 +20,9 @@ os.environ["DEVICE_FINGERPRINT_SALT"] = "test-salt-for-testing-only"
 if "ENV_FILE" in os.environ:
     del os.environ["ENV_FILE"]
 
-from app.db.session import Base, get_db
+# Import models first to ensure they're registered with Base.metadata
 from app.db.models import Device, DeviceToken, Ingestion, Query, QueryChunk
+from app.db.session import Base, get_db
 from app.main import app
 from app.core.config import settings
 
@@ -31,31 +32,49 @@ def test_db() -> Generator[Session, None, None]:
     """Create a test database session."""
     # Create in-memory SQLite database
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    
+    # Ensure all models are imported and registered with Base.metadata
+    # The models are already imported at the top of the file, but we reference them here
+    # to ensure they're registered with Base.metadata
+    _ = Device, DeviceToken, Ingestion, Query, QueryChunk
+    
+    # Create all tables - this must happen before creating sessions
     Base.metadata.create_all(bind=engine)
     
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
-    # Override get_db dependency
+    # Override get_db dependency - this ensures FastAPI uses our test database
     def override_get_db():
+        db = TestingSessionLocal()
         try:
-            db = TestingSessionLocal()
             yield db
         finally:
             db.close()
     
+    # Set the dependency override BEFORE yielding
+    # This ensures the override is active when the client is created
     app.dependency_overrides[get_db] = override_get_db
     
+    # Create a session to verify tables exist
     db = TestingSessionLocal()
     try:
+        # Verify tables were created by trying a simple query
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        assert len(tables) > 0, f"Tables not created! Expected tables, got: {tables}"
         yield db
     finally:
         db.close()
+        # Clear dependency overrides after test
         app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")
 def client(test_db: Session) -> Generator[TestClient, None, None]:
-    """Create a test client."""
+    """Create a test client with database tables created."""
+    # test_db fixture already creates tables and overrides get_db
+    # Just create the client - dependency override is already set
     with TestClient(app) as test_client:
         yield test_client
 
