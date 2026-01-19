@@ -37,8 +37,8 @@ class TestIngestionWorker:
             mock_extract.return_value = "Test content extracted from HTML"
             mock_estimate.return_value = 100  # Within limit
             mock_chunk.return_value = [
-                Chunk(text="Chunk 1", position=0, token_count=50),
-                Chunk(text="Chunk 2", position=1, token_count=50)
+                Chunk(text="Chunk 1", position=0, start_char=0, end_char=50, token_count=50),
+                Chunk(text="Chunk 2", position=1, start_char=50, end_char=100, token_count=50)
             ]
             mock_embed.return_value = [[0.1] * 1536, [0.2] * 1536]
             mock_store.return_value = None
@@ -123,7 +123,7 @@ class TestIngestionWorker:
             mock_extract.return_value = "Large text content"
             mock_estimate.side_effect = [200000, 150000]  # First exceeds, then after truncation
             mock_truncate.return_value = "Truncated text content"
-            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, token_count=50)]
+            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, start_char=0, end_char=50, token_count=50)]
             mock_embed.return_value = [[0.1] * 1536]
             mock_store.return_value = None
             
@@ -192,7 +192,7 @@ class TestIngestionWorker:
             mock_fetch.return_value = "<html><body>Test</body></html>"
             mock_extract.return_value = "Test content"
             mock_estimate.return_value = 100
-            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, token_count=50)]
+            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, start_char=0, end_char=50, token_count=50)]
             mock_embed.side_effect = Exception("OpenAI API error")
             
             # Process ingestion
@@ -228,7 +228,7 @@ class TestIngestionWorker:
             mock_fetch.return_value = "<html><body>Test</body></html>"
             mock_extract.return_value = "Test content"
             mock_estimate.return_value = 100
-            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, token_count=50)]
+            mock_chunk.return_value = [Chunk(text="Chunk 1", position=0, start_char=0, end_char=50, token_count=50)]
             mock_embed.return_value = [[0.1] * 1536]
             mock_store.return_value = None
             

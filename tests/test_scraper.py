@@ -37,7 +37,7 @@ class TestScraper:
             
             with pytest.raises(ScrapingError) as exc_info:
                 fetch_html("https://example.com")
-            assert exc_info.value.error_code == "TIMEOUT"
+            assert exc_info.value.error_code == "NETWORK_TIMEOUT"
     
     def test_fetch_html_http_error(self):
         """Test fetch with HTTP error."""

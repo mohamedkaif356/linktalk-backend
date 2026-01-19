@@ -108,7 +108,7 @@ class TestQueryAPI:
         query = Query(
             device_id=device.id,
             question="Test question",
-            status=QueryStatus.COMPLETED,
+            status=QueryStatus.SUCCESS,
             answer="Test answer",
             created_at=datetime.utcnow(),
             completed_at=datetime.utcnow()

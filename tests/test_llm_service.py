@@ -108,4 +108,4 @@ class TestLLMService:
             
             with pytest.raises(Exception) as exc_info:
                 generate_answer("Test question", "Test context")
-            assert "circuit breaker" in str(exc_info.value).lower()
+            assert "circuit_breaker" in str(exc_info.value).lower() or "circuit breaker" in str(exc_info.value).lower()

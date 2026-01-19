@@ -110,9 +110,9 @@ class TestQueryWorker:
              patch('app.services.query_worker.search_relevant_chunks') as mock_search, \
              patch('app.services.query_worker.log_query_metrics') as mock_metrics:
             
-            # Setup mocks - no chunks found
+            # Setup mocks - no chunks found with similarity message
             mock_embed.return_value = [0.1] * 1536
-            mock_search.side_effect = NoContentError("No chunks found")
+            mock_search.side_effect = NoContentError("No chunks found with similarity >= 0.6")
             mock_metrics.return_value = None
             
             # Process query
