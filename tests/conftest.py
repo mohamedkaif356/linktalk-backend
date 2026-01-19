@@ -39,7 +39,17 @@ def test_db() -> Generator[Session, None, None]:
     _ = Device, DeviceToken, Ingestion, Query, QueryChunk
     
     # Create all tables - this must happen before creating sessions
+    # Use drop_all first to ensure clean state, then create_all
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    
+    # Verify tables were created
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    expected_tables = ['devices', 'device_tokens', 'ingestions', 'queries', 'query_chunks']
+    for expected_table in expected_tables:
+        assert expected_table in tables, f"Table {expected_table} not created! Available tables: {tables}"
     
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     
@@ -55,14 +65,9 @@ def test_db() -> Generator[Session, None, None]:
     # This ensures the override is active when the client is created
     app.dependency_overrides[get_db] = override_get_db
     
-    # Create a session to verify tables exist
+    # Create a session to yield
     db = TestingSessionLocal()
     try:
-        # Verify tables were created by trying a simple query
-        from sqlalchemy import inspect
-        inspector = inspect(engine)
-        tables = inspector.get_table_names()
-        assert len(tables) > 0, f"Tables not created! Expected tables, got: {tables}"
         yield db
     finally:
         db.close()
@@ -74,7 +79,10 @@ def test_db() -> Generator[Session, None, None]:
 def client(test_db: Session) -> Generator[TestClient, None, None]:
     """Create a test client with database tables created."""
     # test_db fixture already creates tables and overrides get_db
-    # Just create the client - dependency override is already set
+    # Verify dependency override is set
+    assert get_db in app.dependency_overrides, "get_db dependency override not set!"
+    
+    # Create the client - dependency override should be active
     with TestClient(app) as test_client:
         yield test_client
 
