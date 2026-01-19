@@ -1,6 +1,7 @@
 """Unit tests for text chunker."""
 import pytest
-from app.services.chunker import chunk_text, estimate_tokens
+from app.services.chunker import chunk_text
+from app.services.scraper import estimate_tokens
 from app.core.config import settings
 
 
