@@ -122,7 +122,7 @@ Check:
 pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
 ```
 
-**CRITICAL**: You MUST set Python version to **3.11.11** in Render's service settings (see step 3.2). The `.python-version` and `runtime.txt` files alone are not enough - Render may ignore them. You must explicitly set `PYTHON_VERSION=3.11.11` in the dashboard Environment Variables.
+**CRITICAL**: You MUST set Python version to **3.11.11** in Render's service settings (see step 3.2). The `.python-version` file alone is not enough - Render may ignore it. You must explicitly set `PYTHON_VERSION=3.11.11` in the dashboard Environment Variables.
 
 **Start Command:**
 ```bash
@@ -130,8 +130,8 @@ gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker -
 ```
 
 **Important**: 
-- The project includes a `runtime.txt` file that pins Python to 3.11.9
-- **You must also explicitly set Python version to 3.11.9 in Render's service settings** (see step 3.2 above)
+- The project includes a `.python-version` file that pins Python to 3.11.11
+- **You must also explicitly set `PYTHON_VERSION=3.11.11` as an environment variable in Render's service settings** (see step 3.4 below)
 - Python 3.13 causes build failures because `pydantic-core` (Rust-based) doesn't have pre-built wheels for Python 3.13 yet
 
 ### 3.4 Set Environment Variables

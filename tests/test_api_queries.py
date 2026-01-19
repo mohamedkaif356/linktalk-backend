@@ -136,7 +136,7 @@ class TestQueryAPI:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["status"] == "success"
+        assert data["status"] == "SUCCESS"
         assert len(data["sources"]) == 1
         assert data["sources"][0]["url"] == "https://example.com"
         assert data["sources"][0]["relevance_score"] == 0.9
