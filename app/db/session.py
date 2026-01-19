@@ -6,26 +6,24 @@ from typing import Generator
 from app.core.config import settings
 
 # Create database engine with connection pooling
-# For SQLite, pooling is limited but we configure it for future PostgreSQL migration
+# SQLite doesn't support connection pooling parameters (max_overflow, pool_size)
+# Only apply pooling for non-SQLite databases (e.g., PostgreSQL)
 if settings.database_url.startswith("sqlite"):
-    # SQLite-specific configuration
+    # SQLite-specific configuration (no pooling parameters)
     engine = create_engine(
         settings.database_url,
         connect_args={"check_same_thread": False},  # SQLite-specific
         echo=settings.environment == "development",
-        pool_pre_ping=True,  # Verify connections before using
-        pool_size=5,  # SQLite uses file-based locking, but pool helps with connection reuse
-        max_overflow=10,
     )
 else:
-    # PostgreSQL or other database
+    # PostgreSQL or other database with connection pooling
     engine = create_engine(
         settings.database_url,
         echo=settings.environment == "development",
-        pool_size=10,
-        max_overflow=20,
-        pool_timeout=30,
-        pool_pre_ping=True,  # Verify connections before using
+        pool_size=10,  # Maintain a pool of 10 connections
+        max_overflow=20,  # Allow up to 20 connections to overflow the pool
+        pool_timeout=30,  # Wait 30 seconds for a connection from the pool
+        pool_pre_ping=True,  # Test connections for liveness
     )
 
 # Create declarative base for models
