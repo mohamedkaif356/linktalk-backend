@@ -30,46 +30,59 @@ from app.core.config import settings
 @pytest.fixture(scope="function")
 def test_db() -> Generator[Session, None, None]:
     """Create a test database session."""
-    # Create in-memory SQLite database for each test
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    # Use a temporary file-based database for better compatibility with dependency overrides
+    # In-memory databases can have issues with connection sharing
+    import tempfile
+    import os
+    temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+    temp_db.close()
+    db_url = f"sqlite:///{temp_db.name}"
     
-    # Ensure all models are imported and registered with Base.metadata
-    _ = Device, DeviceToken, Ingestion, Query, QueryChunk
-    
-    # Create all tables
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    
-    # Verify tables were created
-    from sqlalchemy import inspect
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
-    expected_tables = ['devices', 'device_tokens', 'ingestions', 'queries', 'query_chunks']
-    for expected_table in expected_tables:
-        assert expected_table in tables, f"Table {expected_table} not created! Available tables: {tables}"
-    
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
-    # Override get_db dependency - this ensures FastAPI uses our test database
-    def override_get_db():
+    try:
+        # Create engine for test database
+        engine = create_engine(db_url, connect_args={"check_same_thread": False})
+        
+        # Ensure all models are imported and registered with Base.metadata
+        _ = Device, DeviceToken, Ingestion, Query, QueryChunk
+        
+        # Create all tables
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        
+        # Verify tables were created
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        expected_tables = ['devices', 'device_tokens', 'ingestions', 'queries', 'query_chunks']
+        for expected_table in expected_tables:
+            assert expected_table in tables, f"Table {expected_table} not created! Available tables: {tables}"
+        
+        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        
+        # Override get_db dependency - this ensures FastAPI uses our test database
+        def override_get_db():
+            db = TestingSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+        
+        # Set the dependency override BEFORE yielding
+        # This ensures the override is active when the client is created
+        app.dependency_overrides[get_db] = override_get_db
+        
+        # Create a session to yield
         db = TestingSessionLocal()
         try:
             yield db
         finally:
             db.close()
-    
-    # Set the dependency override BEFORE yielding
-    # This ensures the override is active when the client is created
-    app.dependency_overrides[get_db] = override_get_db
-    
-    # Create a session to yield
-    db = TestingSessionLocal()
-    try:
-        yield db
+            # Clear dependency overrides after test
+            app.dependency_overrides.clear()
     finally:
-        db.close()
-        # Clear dependency overrides after test
-        app.dependency_overrides.clear()
+        # Clean up temporary database file
+        if os.path.exists(temp_db.name):
+            os.unlink(temp_db.name)
 
 
 @pytest.fixture(scope="function")

@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import logging
 import uuid
 import time
+import os
 
 from app.api.v1.routes import devices, ingestions, queries
 from app.core.config import settings
@@ -39,15 +40,20 @@ async def lifespan(app: FastAPI):
         logger.error("Please set required environment variables. See .env.example for reference.")
         raise
     
-    # Initialize database tables
-    try:
-        from app.db.init_db import init_db
-        init_db()
-        logger.info("Database tables initialized successfully")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}", exc_info=True)
-        # Don't raise - allow app to start even if DB init fails
-        # This allows for manual initialization if needed
+    # Initialize database tables (skip in test mode - tests handle their own DB)
+    # Check both settings.environment and os.getenv to be safe
+    env_value = getattr(settings, 'environment', None) or os.getenv('ENVIRONMENT', 'development')
+    if env_value.lower() != "test":
+        try:
+            from app.db.init_db import init_db
+            init_db()
+            logger.info("Database tables initialized successfully")
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}", exc_info=True)
+            # Don't raise - allow app to start even if DB init fails
+            # This allows for manual initialization if needed
+    else:
+        logger.debug("Skipping database initialization in test mode")
     
     logger.info(f"Application starting in {settings.environment} mode")
     yield
