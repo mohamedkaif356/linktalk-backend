@@ -1,5 +1,6 @@
 """Tests for main application."""
 import pytest
+from unittest.mock import PropertyMock, patch
 from fastapi import status
 from fastapi.testclient import TestClient
 from app.main import app
@@ -40,19 +41,18 @@ class TestMainApp:
         data = response.json()
         assert data["openai"]["status"] == "not_configured"
     
-    def test_health_check_openai_error(self, client, monkeypatch):
+    def test_health_check_openai_error(self, client):
         """Test health check when OpenAI check raises exception."""
-        # Mock settings to raise exception
-        def mock_getattr(obj, name):
-            if name == "openai_api_key":
-                raise Exception("Settings error")
-            return getattr(obj, name)
-        
-        monkeypatch.setattr("builtins.getattr", mock_getattr)
-        
-        response = client.get("/health")
-        # Should handle gracefully
-        assert response.status_code in [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE]
+        # Mock settings.openai_api_key to raise exception when accessed
+        with patch('app.main.settings') as mock_settings:
+            # Make openai_api_key property raise exception
+            type(mock_settings).openai_api_key = PropertyMock(side_effect=Exception("Settings error"))
+            
+            response = client.get("/health")
+            # Should handle gracefully
+            assert response.status_code in [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE]
+            data = response.json()
+            assert data["openai"]["status"] == "error"
     
     def test_validation_error_handler_missing_field(self, client):
         """Test validation error handler for missing field."""

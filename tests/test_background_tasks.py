@@ -20,31 +20,33 @@ class TestBackgroundTasks:
     
     def test_submit_task_queue_full(self, monkeypatch):
         """Test task submission when queue is full."""
-        from app.core.background_tasks import _pending_tasks, _pending_tasks_lock
+        import app.core.background_tasks as bg_tasks
         
         # Mock settings to have very small queue
         original_limit = settings.background_task_queue_size
         monkeypatch.setattr(settings, 'background_task_queue_size', 1)
         
-        # Set pending tasks to limit
-        with _pending_tasks_lock:
-            _pending_tasks = 1  # Set to limit
+        # Set pending tasks to limit (at the limit, so next submission should fail)
+        with bg_tasks._pending_tasks_lock:
+            bg_tasks._pending_tasks = 1  # Set to limit
         
         def dummy_task():
             time.sleep(0.1)
         
-        with pytest.raises(HTTPException) as exc_info:
-            submit_task(dummy_task)
-        
-        assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert exc_info.value.detail["code"] == "SERVICE_UNAVAILABLE"
-        assert exc_info.value.detail["details"]["queue_size"] == 1
-        assert exc_info.value.detail["details"]["queue_limit"] == 1
-        
-        # Reset
-        with _pending_tasks_lock:
-            _pending_tasks = 0
-        monkeypatch.setattr(settings, 'background_task_queue_size', original_limit)
+        try:
+            with pytest.raises(HTTPException) as exc_info:
+                submit_task(dummy_task)
+            
+            assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+            assert exc_info.value.detail["code"] == "SERVICE_UNAVAILABLE"
+            assert exc_info.value.detail["details"]["queue_size"] == 1
+            assert exc_info.value.detail["details"]["queue_limit"] == 1
+        finally:
+            # Reset - wait a bit for any pending tasks to complete
+            time.sleep(0.2)
+            with bg_tasks._pending_tasks_lock:
+                bg_tasks._pending_tasks = 0
+            monkeypatch.setattr(settings, 'background_task_queue_size', original_limit)
     
     def test_submit_task_handles_exception(self):
         """Test that task exceptions are handled gracefully."""

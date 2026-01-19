@@ -73,9 +73,10 @@ class TestQueryAPI:
         from app.db.models import Device
         token, device = test_device_token
         
-        # Exhaust quota
-        device.quota_remaining = 0
+        # Exhaust quota - update in database and refresh
+        test_db.query(Device).filter(Device.id == device.id).update({"quota_remaining": 0})
         test_db.commit()
+        test_db.refresh(device)
         
         response = client.post(
             "/api/v1/query",
@@ -88,7 +89,7 @@ class TestQueryAPI:
     
     def test_get_query_status_with_chunks(self, client, test_db, test_device_token):
         """Test getting query status with query chunks."""
-        from app.db.models import Query, QueryChunk, Ingestion, QueryStatus
+        from app.db.models import Query, QueryChunk, Ingestion, IngestionStatus, QueryStatus
         from datetime import datetime
         token, device = test_device_token
         
@@ -96,7 +97,7 @@ class TestQueryAPI:
         ingestion = Ingestion(
             device_id=device.id,
             url="https://example.com",
-            status="success",
+            status=IngestionStatus.SUCCESS,
             created_at=datetime.utcnow()
         )
         test_db.add(ingestion)
