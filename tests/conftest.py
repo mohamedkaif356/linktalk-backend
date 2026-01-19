@@ -12,7 +12,7 @@ from typing import Generator
 # Set test environment variables BEFORE importing app modules
 # This prevents pydantic-settings from trying to read .env file
 os.environ["ENVIRONMENT"] = "test"
-os.environ["OPENAI_API_KEY"] = "test-key-sk-proj-test123456789012345678901234567890"
+os.environ["OPENAI_API_KEY"] = "sk-test123456789012345678901234567890123456789012345678901234567890"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["DEVICE_FINGERPRINT_SALT"] = "test-salt-for-testing-only"
 

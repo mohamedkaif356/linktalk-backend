@@ -111,10 +111,9 @@ Check:
    - **Region**: Choose closest (e.g., `Oregon (US West)`)
    - **Branch**: `main`
    - **Root Directory**: (leave empty)
-   - **Python Version**: **CRITICAL** - Set to `3.11.11` (or `3.11`) in the dropdown. This overrides the default Python 3.13 which causes build failures.
-   - **OR** add environment variable `PYTHON_VERSION=3.11.11` in the Environment tab
+   - **Python Version**: Select **"Python 3"** from the dropdown (this is fine - we'll set the specific version via environment variable)
    
-   **IMPORTANT**: The project includes `.python-version` file with `3.11.11`, but you MUST also set it in Render dashboard. Render may ignore the file if not set in dashboard.
+   **CRITICAL**: After creating the service, you MUST add `PYTHON_VERSION=3.11.11` as an environment variable (see step 3.4). This is the ONLY way to ensure Python 3.11.11 is used instead of the default Python 3.13.
 
 ### 3.3 Build & Start Commands
 
@@ -123,7 +122,7 @@ Check:
 pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
 ```
 
-**CRITICAL**: You MUST set Python version to **3.11.9** in Render's service settings (see step 3.2). The `runtime.txt` file alone is not enough - Render may ignore it. You must explicitly set it in the dashboard.
+**CRITICAL**: You MUST set Python version to **3.11.11** in Render's service settings (see step 3.2). The `.python-version` and `runtime.txt` files alone are not enough - Render may ignore them. You must explicitly set `PYTHON_VERSION=3.11.11` in the dashboard Environment Variables.
 
 **Start Command:**
 ```bash
@@ -137,7 +136,15 @@ gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker -
 
 ### 3.4 Set Environment Variables
 
-Click **"Environment"** tab, add:
+Click **"Environment"** tab, add these variables **IN THIS ORDER**:
+
+**1. PYTHON_VERSION (CRITICAL - ADD THIS FIRST):**
+
+| Variable | Value | Notes |
+|----------|-------|-------|
+| `PYTHON_VERSION` | `3.11.11` | **MUST be set first** - This overrides the default Python 3.13 |
+
+**2. Application Environment Variables:**
 
 | Variable | Value | How to Get |
 |----------|-------|------------|

@@ -80,7 +80,8 @@ class Settings(BaseSettings):
         return v
     
     class Config:
-        env_file = ".env"
+        # Only read .env file if it exists and we're not in test mode
+        env_file = ".env" if os.path.exists(".env") and os.getenv("ENVIRONMENT") != "test" else None
         env_file_encoding = "utf-8"
         case_sensitive = False
         # Allow .env file to be missing (will use environment variables only)
