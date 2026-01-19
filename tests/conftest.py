@@ -30,16 +30,13 @@ from app.core.config import settings
 @pytest.fixture(scope="function")
 def test_db() -> Generator[Session, None, None]:
     """Create a test database session."""
-    # Create in-memory SQLite database
+    # Create in-memory SQLite database for each test
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     
     # Ensure all models are imported and registered with Base.metadata
-    # The models are already imported at the top of the file, but we reference them here
-    # to ensure they're registered with Base.metadata
     _ = Device, DeviceToken, Ingestion, Query, QueryChunk
     
-    # Create all tables - this must happen before creating sessions
-    # Use drop_all first to ensure clean state, then create_all
+    # Create all tables
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
@@ -162,11 +159,20 @@ def mock_openai_client(monkeypatch):
         class embeddings:
             @staticmethod
             def create(*args, **kwargs):
+                # Get input - can be string or list of strings
+                input_data = kwargs.get('input', ['test'])
+                if isinstance(input_data, str):
+                    input_data = [input_data]
+                
+                class MockData:
+                    def __init__(self):
+                        self.embedding = [0.1] * 1536
+                
                 class MockResponse:
-                    class MockData:
-                        def __init__(self):
-                            self.embedding = [0.1] * 1536
-                    data = [MockData()] * (kwargs.get('input', ['test']) if isinstance(kwargs.get('input'), list) else 1)
+                    def __init__(self):
+                        # Create one MockData per input
+                        self.data = [MockData() for _ in input_data]
+                
                 return MockResponse()
         
         class chat:

@@ -10,7 +10,9 @@ class TestChunker:
     
     def test_chunk_small_text(self):
         """Test chunking small text."""
-        text = "This is a short text that should create one chunk."
+        # Create text that's long enough to exceed min_chunk_size (50 tokens)
+        # Each word is roughly 1 token, so we need at least 50 words
+        text = " ".join(["This is a sentence."] * 30)  # ~60 tokens
         chunks = chunk_text(text)
         assert len(chunks) > 0
         assert all(chunk.text for chunk in chunks)
@@ -24,16 +26,18 @@ class TestChunker:
     
     def test_chunk_preserves_content(self):
         """Test that chunking preserves all content."""
-        text = "Sentence one. Sentence two. Sentence three."
+        # Create text long enough to be chunked (at least 50 tokens)
+        text = " ".join([f"Sentence {i}." for i in range(100)])
         chunks = chunk_text(text)
         combined = " ".join(chunk.text for chunk in chunks)
-        assert "Sentence one" in combined
-        assert "Sentence two" in combined
-        assert "Sentence three" in combined
+        assert "Sentence 0" in combined
+        assert "Sentence 50" in combined
+        assert "Sentence 99" in combined
     
     def test_chunk_has_token_count(self):
         """Test that chunks have token counts."""
-        text = "This is a test text for chunking."
+        # Create text long enough to be chunked (at least 50 tokens)
+        text = " ".join(["This is a test text for chunking."] * 30)
         chunks = chunk_text(text)
         for chunk in chunks:
             assert hasattr(chunk, 'token_count')

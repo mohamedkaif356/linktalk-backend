@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     
     Ensures graceful shutdown of background task executor on application stop.
     Validates required environment variables on startup.
+    Initializes database tables if they don't exist.
     """
     # Startup
     logger.info("Starting RAG Backend API...")
@@ -37,6 +38,16 @@ async def lifespan(app: FastAPI):
         logger.error(f"Startup validation failed: {e}")
         logger.error("Please set required environment variables. See .env.example for reference.")
         raise
+    
+    # Initialize database tables
+    try:
+        from app.db.init_db import init_db
+        init_db()
+        logger.info("Database tables initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}", exc_info=True)
+        # Don't raise - allow app to start even if DB init fails
+        # This allows for manual initialization if needed
     
     logger.info(f"Application starting in {settings.environment} mode")
     yield

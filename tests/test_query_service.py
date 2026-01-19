@@ -14,13 +14,13 @@ class TestQueryService:
     
     def test_validate_question_too_short(self):
         """Test validation rejects too short question."""
-        with pytest.raises(InvalidQuestionError, match="too short"):
+        with pytest.raises(InvalidQuestionError, match="at least"):
             validate_question("short")
     
     def test_validate_question_too_long(self):
         """Test validation rejects too long question."""
         long_question = "a" * 600
-        with pytest.raises(InvalidQuestionError, match="too long"):
+        with pytest.raises(InvalidQuestionError, match="at most"):
             validate_question(long_question)
     
     def test_validate_question_empty(self):
