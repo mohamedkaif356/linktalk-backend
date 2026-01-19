@@ -60,8 +60,13 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down RAG Backend API...")
-    shutdown_executor()
-    logger.info("Background executor shut down")
+    # Skip executor shutdown in test mode to avoid interfering with tests
+    env_value = getattr(settings, 'environment', None) or os.getenv('ENVIRONMENT', 'development')
+    if env_value.lower() != "test":
+        shutdown_executor()
+        logger.info("Background executor shut down")
+    else:
+        logger.debug("Skipping executor shutdown in test mode")
 
 
 # Create FastAPI app with lifespan

@@ -60,8 +60,18 @@ def submit_task(func: Callable, *args: Any, **kwargs: Any) -> None:
         except Exception as e:
             logger.error(f"Background task failed: {e}", exc_info=True)
     
-    future = _executor.submit(func, *args, **kwargs)
-    future.add_done_callback(_handle_exception)
+    try:
+        future = _executor.submit(func, *args, **kwargs)
+        future.add_done_callback(_handle_exception)
+    except RuntimeError as e:
+        # Handle executor shutdown gracefully (e.g., during tests)
+        if "cannot schedule new futures after shutdown" in str(e):
+            logger.warning("Background executor is shut down, task not submitted")
+            with _pending_tasks_lock:
+                _pending_tasks = max(0, _pending_tasks - 1)  # Decrement counter
+            # Don't raise - allow request to complete even if background task can't be submitted
+        else:
+            raise
 
 
 def shutdown_executor() -> None:
