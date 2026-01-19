@@ -113,6 +113,8 @@ Check:
    - **Root Directory**: (leave empty)
    - **Python Version**: **CRITICAL** - Set to `3.11.11` (or `3.11`) in the dropdown. This overrides the default Python 3.13 which causes build failures.
    - **OR** add environment variable `PYTHON_VERSION=3.11.11` in the Environment tab
+   
+   **IMPORTANT**: The project includes `.python-version` file with `3.11.11`, but you MUST also set it in Render dashboard. Render may ignore the file if not set in dashboard.
 
 ### 3.3 Build & Start Commands
 
