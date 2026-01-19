@@ -64,10 +64,12 @@ class TestMainApp:
         data = response.json()
         assert data["detail"]["code"] == "MISSING_FIELD"
     
-    def test_validation_error_handler_other_error(self, client):
+    def test_validation_error_handler_other_error(self, client, test_device_token):
         """Test validation error handler for other validation errors."""
+        token, _ = test_device_token
         response = client.post(
             "/api/v1/query",
-            json={"question": "x" * 501}  # Too long
+            json={"question": "x" * 501},  # Too long
+            headers={"X-Device-Token": token}
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

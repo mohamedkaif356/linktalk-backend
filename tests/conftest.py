@@ -113,8 +113,8 @@ def test_device(test_db: Session) -> Device:
 
 
 @pytest.fixture
-def test_device_token(test_db: Session, test_device: Device) -> tuple[str, DeviceToken]:
-    """Create a test device token and return (token, token_obj)."""
+def test_device_token(test_db: Session, test_device: Device) -> tuple[str, Device]:
+    """Create a test device token and return (token, device)."""
     import hashlib
     from datetime import datetime
     
@@ -130,7 +130,7 @@ def test_device_token(test_db: Session, test_device: Device) -> tuple[str, Devic
     test_db.commit()
     test_db.refresh(token_obj)
     
-    return device_token, token_obj
+    return device_token, test_device
 
 
 @pytest.fixture
