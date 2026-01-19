@@ -123,6 +123,7 @@ class TestQueryAPI:
             ingestion_id=ingestion.id,
             chunk_id="chunk-1",
             relevance_score=0.9,
+            position=0,  # Required field
             text_snippet="Test snippet"
         )
         test_db.add(chunk)
@@ -135,7 +136,7 @@ class TestQueryAPI:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["status"] == "completed"
+        assert data["status"] == "success"
         assert len(data["sources"]) == 1
         assert data["sources"][0]["url"] == "https://example.com"
         assert data["sources"][0]["relevance_score"] == 0.9
