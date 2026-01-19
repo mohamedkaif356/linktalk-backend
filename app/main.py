@@ -50,8 +50,9 @@ async def lifespan(app: FastAPI):
             logger.info("Database tables initialized successfully")
         except Exception as e:
             logger.error(f"Database initialization failed: {e}", exc_info=True)
-            # Don't raise - allow app to start even if DB init fails
-            # This allows for manual initialization if needed
+            # Re-raise to prevent app from starting without a working database
+            # This ensures we catch DB issues early rather than failing on first request
+            raise
     else:
         logger.debug("Skipping database initialization in test mode")
     

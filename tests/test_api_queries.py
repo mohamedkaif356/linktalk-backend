@@ -67,3 +67,111 @@ class TestQueryAPI:
         )
         # Should accept the request (may fail in background if no content)
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN]
+    
+    def test_submit_query_quota_exhausted(self, client, test_db, test_device_token):
+        """Test submitting query when quota is exhausted."""
+        from app.db.models import Device
+        token, device = test_device_token
+        
+        # Exhaust quota
+        device.quota_remaining = 0
+        test_db.commit()
+        
+        response = client.post(
+            "/api/v1/query",
+            json={"question": "What is this about?"},
+            headers={"X-Device-Token": token}
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        data = response.json()
+        assert data["detail"]["code"] == "QUOTA_EXHAUSTED"
+    
+    def test_get_query_status_with_chunks(self, client, test_db, test_device_token):
+        """Test getting query status with query chunks."""
+        from app.db.models import Query, QueryChunk, Ingestion, QueryStatus
+        from datetime import datetime
+        token, device = test_device_token
+        
+        # Create ingestion
+        ingestion = Ingestion(
+            device_id=device.id,
+            url="https://example.com",
+            status="success",
+            created_at=datetime.utcnow()
+        )
+        test_db.add(ingestion)
+        test_db.commit()
+        test_db.refresh(ingestion)
+        
+        # Create query with chunks
+        query = Query(
+            device_id=device.id,
+            question="Test question",
+            status=QueryStatus.COMPLETED,
+            answer="Test answer",
+            created_at=datetime.utcnow(),
+            completed_at=datetime.utcnow()
+        )
+        test_db.add(query)
+        test_db.commit()
+        test_db.refresh(query)
+        
+        # Create query chunk
+        chunk = QueryChunk(
+            query_id=query.id,
+            ingestion_id=ingestion.id,
+            chunk_id="chunk-1",
+            relevance_score=0.9,
+            text_snippet="Test snippet"
+        )
+        test_db.add(chunk)
+        test_db.commit()
+        
+        # Get query status
+        response = client.get(
+            f"/api/v1/queries/{query.id}",
+            headers={"X-Device-Token": token}
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "completed"
+        assert len(data["sources"]) == 1
+        assert data["sources"][0]["url"] == "https://example.com"
+        assert data["sources"][0]["relevance_score"] == 0.9
+    
+    def test_get_query_status_wrong_device(self, client, test_db, test_device_token):
+        """Test getting query from different device is forbidden."""
+        from app.db.models import Device, Query, QueryStatus
+        from datetime import datetime
+        token, device = test_device_token
+        
+        # Create another device
+        other_device = Device(
+            device_fingerprint="other_device",
+            quota_remaining=3,
+            device_model="Other Device",
+            os_version="1.0"
+        )
+        test_db.add(other_device)
+        test_db.commit()
+        test_db.refresh(other_device)
+        
+        # Create query for other device
+        query = Query(
+            device_id=other_device.id,
+            question="Other question",
+            status=QueryStatus.PENDING,
+            created_at=datetime.utcnow()
+        )
+        test_db.add(query)
+        test_db.commit()
+        test_db.refresh(query)
+        
+        # Try to access with different device token
+        response = client.get(
+            f"/api/v1/queries/{query.id}",
+            headers={"X-Device-Token": token}
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        data = response.json()
+        assert data["detail"]["code"] == "FORBIDDEN"

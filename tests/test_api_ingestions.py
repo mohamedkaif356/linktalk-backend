@@ -82,3 +82,30 @@ class TestIngestionAPI:
             headers={"X-Device-Token": token}
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
+    
+    def test_scrape_url_already_ingested(self, client, test_db, test_device_token):
+        """Test scraping URL when device already has ingested content."""
+        from app.db.models import Ingestion, IngestionStatus
+        from datetime import datetime
+        token, device = test_device_token
+        
+        # Create existing successful ingestion
+        existing_ingestion = Ingestion(
+            device_id=device.id,
+            url="https://example.com",
+            status=IngestionStatus.SUCCESS,
+            created_at=datetime.utcnow()
+        )
+        test_db.add(existing_ingestion)
+        test_db.commit()
+        
+        # Try to ingest another URL
+        response = client.post(
+            "/api/v1/scrape-url",
+            json={"url": "https://another-example.com"},
+            headers={"X-Device-Token": token}
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert data["detail"]["code"] == "URL_ALREADY_INGESTED"
+        assert data["detail"]["details"]["existing_url"] == "https://example.com"

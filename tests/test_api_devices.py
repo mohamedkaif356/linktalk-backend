@@ -90,3 +90,72 @@ class TestDeviceRegistration:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "device_token" in data
+    
+    def test_register_device_missing_os_version(self, client):
+        """Test registration with missing os_version field."""
+        response = client.post(
+            "/api/v1/register-device",
+            json={
+                "app_instance_id": "test-instance",
+                "device_model": "Test Device"
+                # Missing os_version
+            }
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert data["detail"]["code"] == "MISSING_FIELD"
+    
+    def test_register_device_os_version_too_long(self, client):
+        """Test registration with os_version too long."""
+        response = client.post(
+            "/api/v1/register-device",
+            json={
+                "app_instance_id": "test-instance",
+                "device_model": "Test Device",
+                "os_version": "a" * 51  # Too long
+            }
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_DEVICE_INFO"
+    
+    def test_register_device_existing_device_no_active_token(self, client, test_db):
+        """Test registration when device exists but has no active token."""
+        from app.db.models import Device, DeviceToken
+        from datetime import datetime, timedelta
+        
+        # Create device with expired token
+        device = Device(
+            device_fingerprint="test_fingerprint_existing",
+            quota_remaining=2,
+            device_model="Test Device",
+            os_version="1.0"
+        )
+        test_db.add(device)
+        test_db.commit()
+        test_db.refresh(device)
+        
+        # Create expired token
+        expired_token = DeviceToken(
+            token_hash="expired_token_hash",
+            device_id=device.id,
+            created_at=datetime.utcnow() - timedelta(days=100),
+            expires_at=datetime.utcnow() - timedelta(days=1)
+        )
+        test_db.add(expired_token)
+        test_db.commit()
+        
+        # Register same device - should create new token
+        response = client.post(
+            "/api/v1/register-device",
+            json={
+                "app_instance_id": "test-instance-existing",
+                "device_model": "Test Device",
+                "os_version": "1.0"
+            }
+        )
+        # Should succeed and return existing device with new token
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "device_token" in data
+        assert data["quota_remaining"] == 2  # Preserved quota
