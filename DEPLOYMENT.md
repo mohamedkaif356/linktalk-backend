@@ -111,20 +111,17 @@ Check:
    - **Region**: Choose closest (e.g., `Oregon (US West)`)
    - **Branch**: `main`
    - **Root Directory**: (leave empty)
-   - **Python Version**: **IMPORTANT** - Set to `3.11.9` (or `3.11`) in the dropdown. This overrides the default Python 3.13 which causes build failures.
+   - **Python Version**: **CRITICAL** - Set to `3.11.11` (or `3.11`) in the dropdown. This overrides the default Python 3.13 which causes build failures.
+   - **OR** add environment variable `PYTHON_VERSION=3.11.11` in the Environment tab
 
 ### 3.3 Build & Start Commands
 
 **Build Command:**
 ```bash
-python3.11 -m pip install --upgrade pip && python3.11 -m pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
 ```
 
-**Alternative (if Python 3.11 is not available in PATH):**
-```bash
-pip install --upgrade pip && pip install -r requirements.txt
-```
-**Note**: Make sure Python version is set to 3.11.9 in Render's service settings (see step 3.2).
+**CRITICAL**: You MUST set Python version to **3.11.9** in Render's service settings (see step 3.2). The `runtime.txt` file alone is not enough - Render may ignore it. You must explicitly set it in the dashboard.
 
 **Start Command:**
 ```bash
